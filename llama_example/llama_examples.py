@@ -37,7 +37,7 @@ def load_model(model_path="./Meta-Llama-3.1-8B-Instruct"):
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=512,
+            max_new_tokens=2048,
             temperature=0.7,
             top_p=0.9
         )
@@ -46,13 +46,16 @@ def load_model(model_path="./Meta-Llama-3.1-8B-Instruct"):
 # helper to query model with logging
 def ask(llama, prompt):
     with Timer("preprocessing"):
+        print("\n=== PROMPT ===\n")
+        print(prompt)
+        print("\n====================\n")
         prepared_prompt = prompt.strip()
 
     with Timer("inference"):
         output = llama(prepared_prompt)[0]["generated_text"]
 
     with Timer("postprocessing"):
-        reply = output[len(prepared_prompt):].strip()
+        reply = output[len(prepared_prompt):].strip() # the model echoes the prompt, remove it
     return reply
 
 # predefined examples
@@ -130,20 +133,21 @@ def main():
     while True:
         print("""
 Choose an option:
-  1. Instruction following
-  2. Reasoning
-  3. Summarization
-  4. Style transfer
-  5. Code generation
-  6. Code explanation
-  7. Structured JSON output
-  8. Chat mode
-  9. Custom prompt
-  0. Exit
+  1.  Instruction following
+  2.  Reasoning
+  3.  Summarization
+  4.  Style transfer
+  5.  Code generation
+  6.  Code explanation
+  7.  Structured JSON output
+  8.  Chat mode
+  9.  Custom prompt
+  10. Performance test
+  0.  Exit
 """)
         choice = input("Enter your choice: ").strip()
 
-        if choice == "0":
+        if choice in ("0", "q", "quit", "exit"):
             print("Goodbye!")
             break
         elif choice in [str(i) for i in range(1, 8)]:
@@ -156,6 +160,21 @@ Choose an option:
             print("\n=== MODEL OUTPUT ===\n")
             print(reply)
             print("\n====================\n")
+        elif choice == "10":
+            test_prompt = "Explain the theory of relativity in simple terms."
+            iterations = 10
+            print(f"Running performance test with {iterations} iterations...")
+            start_time = time.perf_counter()
+            for i in range(iterations):
+                print(f"\n--- Iteration {i+1} ---")
+                reply = ask(llama, test_prompt)
+                print("\n=== MODEL OUTPUT ===\n")
+                print(reply)
+                print("\n====================\n")
+            end_time = time.perf_counter()
+            total_time = end_time - start_time
+            print(f"Total time for {iterations} iterations: {total_time:.2f}s")
+            print(f"Average time per iteration: {total_time/iterations:.2f}s")
         else:
             print("Invalid choice. Try again.")
 
