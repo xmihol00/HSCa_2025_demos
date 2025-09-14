@@ -17,6 +17,9 @@ pip install bitsandbytes
 pip install rich
 
 # login via a huggingface token (get one at https://huggingface.co/settings/tokens)
+# - you will have to create an account if you don't have one
+# - you will have to create a new token with read access to the model repository and to the gated models
+# - you will have to accept the model license at https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct
 huggingface-cli login
 
 # download the model

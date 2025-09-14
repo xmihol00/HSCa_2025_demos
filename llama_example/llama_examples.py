@@ -2,6 +2,7 @@
 import time
 import logging
 import sys
+import argparse
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 # configure logging
@@ -25,21 +26,21 @@ class Timer:
         logger.info(f"{self.label} finished in {end - self.start:.2f}s")
 
 # load model only once
-def load_model(model_path="./Meta-Llama-3.1-8B-Instruct"):
+def load_model(model_path="./Meta-Llama-3.1-8B-Instruct", device_map="cuda:0", torch_dtype="auto", max_new_tokens=1024, temperature=0.7, top_p=0.9):
     with Timer("model load"):
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            device_map="auto",
-            torch_dtype="auto"
+            device_map=device_map,    # specifies which GPU/device to load the model on, affects memory usage and inference speed
+            torch_dtype=torch_dtype   # automatically selects the optimal data type (float16/bfloat16) to reduce memory usage while maintaining quality
         )
         llama = pipeline(
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=2048,
-            temperature=0.7,
-            top_p=0.9
+            max_new_tokens=max_new_tokens,  # maximum number of new tokens to generate, controls output length and inference time
+            temperature=temperature,        # controls randomness in token selection (0.0=deterministic, 1.0=very random), affects creativity vs consistency
+            top_p=top_p                     # nucleus sampling parameter that keeps only tokens with cumulative probability <= 0.9, affects output diversity
         )
     return llama
 
@@ -128,7 +129,41 @@ def chat_mode(llama):
 
 # interactive menu
 def main():
-    llama = load_model()
+    parser = argparse.ArgumentParser(description="LLaMA model inference with configurable parameters")
+    parser = argparse.ArgumentParser(
+        description="LLaMA model inference with configurable parameters",
+        epilog="""
+Examples:
+  %(prog)s                                          # use default settings
+  %(prog)s --temperature 0.5 --max-new-tokens 512   # lower creativity, shorter responses
+  %(prog)s --device-map cpu --torch-dtype float32   # run on CPU with float32 precision
+  %(prog)s --top-p 0.95 --temperature 1.0           # more diverse and creative outputs
+  %(prog)s --device-map auto --max-new-tokens 4096  # auto device selection, longer responses
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--device-map", default="cuda:0", 
+                       choices=["cuda:0", "cuda:1", "cuda:2", "cuda:3", "cuda:4", "cuda:5", "cuda:6", "cuda:7", "cuda:8", "cpu", "auto"],
+                       help="device to load the model on (default: cuda:0)")
+    parser.add_argument("--torch-dtype", default="auto",
+                       choices=["auto", "float16", "bfloat16", "float32"],
+                       help="data type for model weights (default: auto)")
+    parser.add_argument("--max-new-tokens", type=int, default=1024,
+                       help="maximum number of new tokens to generate (default: 1024)")
+    parser.add_argument("--temperature", type=float, default=0.7,
+                       help="controls randomness in generation (0.0-2.0, default: 0.7)")
+    parser.add_argument("--top-p", type=float, default=0.9,
+                       help="nucleus sampling parameter (0.0-1.0, default: 0.9)")
+    
+    args = parser.parse_args()
+    
+    llama = load_model(
+        device_map=args.device_map,
+        torch_dtype=args.torch_dtype,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+        top_p=args.top_p
+    )
 
     while True:
         print("""
