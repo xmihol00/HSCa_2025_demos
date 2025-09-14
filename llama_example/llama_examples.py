@@ -1,68 +1,85 @@
 #!/usr/bin/env python3
-import argparse
+import time
+import logging
+import sys
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-# helper to initialize the model and pipeline
-def load_model(model_path):
-    # load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    # load model in half precision for 24gb gpu
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        device_map="auto",
-        torch_dtype="auto"
-    )
-    # build pipeline
-    return pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        max_new_tokens=512,
-        temperature=0.7,
-        top_p=0.9
-    )
+# configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s: %(message)s",
+    datefmt="%H:%M:%S"
+)
+logger = logging.getLogger("llama-cli")
 
-# helper to run prompt through model
+# helper: measure elapsed time
+class Timer:
+    def __init__(self, label):
+        self.label = label
+    def __enter__(self):
+        self.start = time.perf_counter()
+        logger.info(f"{self.label} started")
+        return self
+    def __exit__(self, exc_type, exc_value, traceback):
+        end = time.perf_counter()
+        logger.info(f"{self.label} finished in {end - self.start:.2f}s")
+
+# load model only once
+def load_model(model_path="./Meta-Llama-3.1-8B-Instruct"):
+    with Timer("model load"):
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            device_map="auto",
+            torch_dtype="auto"
+        )
+        llama = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            max_new_tokens=512,
+            temperature=0.7,
+            top_p=0.9
+        )
+    return llama
+
+# helper to query model with logging
 def ask(llama, prompt):
-    output = llama(prompt)[0]["generated_text"]
-    # remove prompt echo if present
-    return output[len(prompt):].strip()
+    with Timer("preprocessing"):
+        prepared_prompt = prompt.strip()
 
-# all demo examples
+    with Timer("inference"):
+        output = llama(prepared_prompt)[0]["generated_text"]
+
+    with Timer("postprocessing"):
+        reply = output[len(prepared_prompt):].strip()
+    return reply
+
+# predefined examples
 def run_example(llama, example):
-    if example == "instruction":
+    if example == "1":
         prompt = "Explain photosynthesis to a 10-year-old in simple terms."
-        print(ask(llama, prompt))
-
-    elif example == "reasoning":
+    elif example == "2":
         prompt = """You are a tutor helping a student with math.
 Question: If a train leaves at 3 PM traveling at 60 km/h, 
 and another leaves the same station at 4 PM traveling at 80 km/h in the same direction, 
 when will the second train catch up? 
 Explain step by step."""
-        print(ask(llama, prompt))
-
-    elif example == "summarization":
+    elif example == "3":
         text = """
 Artificial intelligence refers to the simulation of human intelligence in machines
 that are programmed to think like humans and mimic their actions...
-"""  # you can replace with longer text
+"""
         prompt = f"Summarize the following text in 3 bullet points:\n\n{text}"
-        print(ask(llama, prompt))
-
-    elif example == "style":
+    elif example == "4":
         prompt = """Rewrite the following paragraph in the style of a Shakespearean play:
 
 The city is noisy and full of energy. People rush to work, cars honk, 
 and every corner has someone selling something."""
-        print(ask(llama, prompt))
-
-    elif example == "codegen":
+    elif example == "5":
         prompt = """Write a Python function that checks whether a number is prime.
 Add comments to explain each step."""
-        print(ask(llama, prompt))
-
-    elif example == "codeexp":
+    elif example == "6":
         code_snippet = """
 def quicksort(arr):
     if len(arr) <= 1:
@@ -74,70 +91,77 @@ def quicksort(arr):
     return quicksort(left) + middle + quicksort(right)
 """
         prompt = f"Explain what the following Python code does in simple terms:\n{code_snippet}"
-        print(ask(llama, prompt))
-
-    elif example == "json":
+    elif example == "7":
         prompt = """Extract structured data from the following sentence.
 Output as JSON with keys: 'name', 'age', 'city'.
 
 Sentence: Maria is 29 years old and lives in Barcelona."""
-        print(ask(llama, prompt))
-
-    elif example == "chat":
-        conversation = """
-You are a friendly chatbot. Keep answers short.
-
-User: Hi, my name is David.
-Assistant: Hello David! How are you today?
-User: I’m doing great. Can you remind me what my name is?
-Assistant:
-"""
-        print(ask(llama, conversation))
-
     else:
-        print(f"Unknown example: {example}")
+        logger.warning("invalid example choice")
+        return
+    reply = ask(llama, prompt)
+    print("\n=== MODEL OUTPUT ===\n")
+    print(reply)
+    print("\n====================\n")
 
+# chat mode
+def chat_mode(llama):
+    print("\n=== Chat mode (type 'exit' to quit) ===\n")
+    history = []
+    while True:
+        user_input = input("You: ")
+        if user_input.lower().strip() in ["exit", "quit"]:
+            print("Exiting chat mode...")
+            break
 
+        # build conversation prompt
+        history.append(f"User: {user_input}")
+        conversation = "\n".join(history) + "\nAssistant:"
+
+        reply = ask(llama, conversation)
+        history.append(f"Assistant: {reply}")
+
+        print(f"\nAssistant: {reply}\n")
+
+# interactive menu
 def main():
-    parser = argparse.ArgumentParser(
-        description="""Run demo examples with Meta-LLaMA-3.1-8B-Instruct
-examples:
-# run instruction following example
-python llama_examples.py -e instruction
+    llama = load_model()
 
-# run reasoning example
-python llama_examples.py -e reasoning
+    while True:
+        print("""
+Choose an option:
+  1. Instruction following
+  2. Reasoning
+  3. Summarization
+  4. Style transfer
+  5. Code generation
+  6. Code explanation
+  7. Structured JSON output
+  8. Chat mode
+  9. Custom prompt
+  0. Exit
+""")
+        choice = input("Enter your choice: ").strip()
 
-# run summarization example
-python llama_examples.py -e summarization
-
-# short demo for structured json output
-python llama_examples.py -e json"""
-    )
-    parser.add_argument(
-        "-m", "--model",
-        type=str,
-        default="./Meta-Llama-3.1-8B-Instruct",
-        help="path to local LLaMA-3.1 8B Instruct model folder"
-    )
-    parser.add_argument(
-        "-e", "--example",
-        type=str,
-        required=True,
-        choices=[
-            "instruction", "reasoning", "summarization", "style",
-            "codegen", "codeexp", "json", "chat"
-        ],
-        help="which example to run"
-    )
-    args = parser.parse_args()
-
-    # load model
-    llama = load_model(args.model)
-
-    # run chosen example
-    run_example(llama, args.example)
-
+        if choice == "0":
+            print("Goodbye!")
+            break
+        elif choice in [str(i) for i in range(1, 8)]:
+            run_example(llama, choice)
+        elif choice == "8":
+            chat_mode(llama)
+        elif choice == "9":
+            prompt = input("Enter your custom prompt: ")
+            reply = ask(llama, prompt)
+            print("\n=== MODEL OUTPUT ===\n")
+            print(reply)
+            print("\n====================\n")
+        else:
+            print("Invalid choice. Try again.")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nInterrupted. Exiting...")
+        sys.exit(0)
