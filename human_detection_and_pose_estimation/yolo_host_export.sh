@@ -1,0 +1,1 @@
+yolo export model=yolov8n_COCO.pt format=imx data=coco8.yaml
