@@ -3,3 +3,6 @@ build/
 *.zip
 models/
 .ipynb_checkpoints
+fronts_rears_dataset/
+dataset/
+dataset.zip
