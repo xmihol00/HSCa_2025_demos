@@ -11,14 +11,13 @@ custom_model = YOLO("yolov8s_front_rears.pt")
 coco_model = YOLO("yolov8s_COCO.pt")
 
 # Class information
-custom_classes = {0: "Vehicle Front", 1: "Vehicle Rear"}
+custom_classes = {0: "vehicle"}
 coco_vehicle_classes = {2: "car", 3: "motorcycle", 5: "bus", 7: "truck", 6: "train"}
 
 # Colors for visualization (BGR format)
 colors = {
-    "front": (0, 255, 0),     # Green for vehicle front
-    "rear": (0, 0, 255),      # Red for vehicle rear
-    "coco_vehicle": (255, 0, 0)  # Blue for COCO vehicle classes
+    "custom_vehicle": (0, 255, 0), # Green for vehicle front
+    "coco_vehicle": (0, 0, 255)    # Blue for COCO vehicle classes
 }
 
 # Get image paths
@@ -55,18 +54,18 @@ while True:
             conf = float(det.conf.item())
             
             # Select color based on class
-            color = colors["front"] if cls_id == 0 else colors["rear"]
+            color = colors["custom_vehicle"]
             
             # Draw bounding box
             cv2.rectangle(vis_img, (box[0], box[1]), (box[2], box[3]), color, 2)
             
             # Label
             label = f"{custom_classes[cls_id]}: {conf:.2f}"
-            t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)[0]
+            t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)[0]
             c2 = box[0] + t_size[0] + 3, box[1] + t_size[1] + 4
             cv2.rectangle(vis_img, (box[0], box[1]), c2, color, -1)
             cv2.putText(vis_img, label, (box[0], box[1] + t_size[1] + 4), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
     
     # Run inference with COCO model
     coco_results = coco_model(img, verbose=False)[0]
@@ -83,11 +82,11 @@ while True:
             
             # Label
             label = f"{coco_vehicle_classes[cls_id]}: {conf:.2f}"
-            t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)[0]
+            t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)[0]
             c2 = box[0] + t_size[0] + 3, box[1] + t_size[1] + 4
             cv2.rectangle(vis_img, (box[0], box[1]), c2, colors["coco_vehicle"], -1)
             cv2.putText(vis_img, label, (box[0], box[1] + t_size[1] + 4), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
     
     # Display image index
     index_text = f"{img_idx + 1}/{len(image_paths)}"
@@ -101,15 +100,14 @@ while True:
     
     # Add legend
     legend_y = 70
-    for class_name, color_name in [("Vehicle Front", "front"), 
-                                   ("Vehicle Rear", "rear"),
+    for class_name, color_name in [("Custom Vehicle", "custom_vehicle"), 
                                    ("COCO Vehicles", "coco_vehicle")]:
-        cv2.rectangle(vis_img, (vis_img.shape[1] - 200, legend_y), 
-                     (vis_img.shape[1] - 180, legend_y + 20), 
+        cv2.rectangle(vis_img, (vis_img.shape[1] - 230, legend_y), 
+                     (vis_img.shape[1] - 210, legend_y + 20), 
                      colors[color_name], -1)
         cv2.putText(vis_img, class_name, 
-                    (vis_img.shape[1] - 175, legend_y + 15), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                    (vis_img.shape[1] - 205, legend_y + 15), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
         legend_y += 30
     
     # Display in full screen
