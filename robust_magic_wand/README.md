@@ -3,3 +3,5 @@ The source files in this directory contain just the minimal code to show the dat
 
 ## Currently Available Spells
 ![spells](spells.png)
+
+All spells are described at https://studylib.net/flashcards/set/a-beginner-s-guide-to-wand-motions_188857.

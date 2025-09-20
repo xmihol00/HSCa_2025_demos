@@ -4,7 +4,7 @@
 	#include "Arduino_BMI270_BMM150.h"
 #endif
 
-const float ACCELERATION_THRESHOLD = 3.0;
+const float ACCELERATION_THRESHOLD = 2.0;
 const unsigned SAMPLES_PER_SPELL = 119;
 
 void setup()
