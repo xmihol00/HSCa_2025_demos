@@ -7,3 +7,5 @@ fronts_rears_dataset/
 dataset/
 dataset.zip
 vehicle_fronts_rears/
+datasets/
+yolov8n_COCO_imx_model/
