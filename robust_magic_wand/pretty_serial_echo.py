@@ -21,7 +21,7 @@ while True:
         x, y = int(float(x) * IMAGE_WIDTH_HEIGHT_IDX), int(float(y) * IMAGE_WIDTH_HEIGHT_IDX)
         image[y, x] = colors[i]
     
-    for _ in range(5):
+    for _ in range(6):
         print(arduino.readline().decode("utf-8"), end='')
 
     label = arduino.readline().decode("utf-8").strip()
