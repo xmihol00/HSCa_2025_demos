@@ -32,16 +32,18 @@ const unsigned CROPPED_SAMPLES_DOUBLED = CROPPED_SAMPLES_PER_SPELL << 1;
 const unsigned FRONT_CROP_SAMPLES = 4;
 const float DELTA_T = 1.0f / SAMPLES_PER_SPELL;
 
-const unsigned NUMBER_OF_LABELS = 5;
+const unsigned NUMBER_OF_LABELS = 6;
 
 
-const char* LABELS[NUMBER_OF_LABELS] = { "Alohomora", "Arresto Momentum", "Avada Kedavra", "Locomotor", "Revelio" };
+const char* LABELS[NUMBER_OF_LABELS] = { "Alohomora", "Arresto Momentum", "Avada Kedavra", "Expeliarmus", "Locomotor", "Revelio" };
 
 const char* LABELS_PADDED[NUMBER_OF_LABELS] = { "Alohomora:        ", 
 												"Arresto Momentum: ", 
 												"Avada Kedavra:    ", 
+												"Expeliarmus:      ", 
 												"Locomotor:        ", 
-												"Revelio:          ", };
+												"Revelio:          ", 
+											};
 
 float acceleration_average_x, acceleration_average_y;
 float angle_average_x, angle_average_y;
