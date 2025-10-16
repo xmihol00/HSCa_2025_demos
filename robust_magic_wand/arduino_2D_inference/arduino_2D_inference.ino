@@ -16,7 +16,7 @@
 using namespace std;
 using namespace tflite;
 
-const float ACCELERATION_TRESHOLD = 2.0;
+const float ACCELERATION_TRESHOLD = 3.0;
 const unsigned PREPARATION_DELAY_MS = 2500;
 
 const unsigned IMAGE_HEIGHT = 20;
